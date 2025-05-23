@@ -6,19 +6,32 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import gdown
+import requests
 import zipfile
+import io
 
 
-# Download and extract ZIP data if not available
+def download_and_extract_dropbox_zip(url, output_path="data"):
+    zip_path = "temp_data.zip"
+    os.makedirs(output_path, exist_ok=True)  # pastikan folder 'data' dibuat dulu
+    direct_url = url.replace("?dl=0", "?dl=1")  # pastikan link direct
+    with requests.get(direct_url, stream=True) as r:
+        r.raise_for_status()
+        with open(zip_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(output_path)
+    os.remove(zip_path)
+
+# Hanya unduh jika folder belum ada
 if not os.path.exists("data/rCMB_DefiniteSubject"):
-    zip_url = "https://drive.google.com/uc?id=17mmw1T3HVX2e9W1tn0mBKKSIwUXwfwsT"
-    output_zip = "data.zip"
-    gdown.download(zip_url, output_zip, quiet=False)
-    with zipfile.ZipFile(output_zip, 'r') as zip_ref:
-        zip_ref.extractall("data")
-    os.remove(output_zip)
-    
+    st.info("Downloading dataset from Dropbox... ⏳")
+    dropbox_url = "https://www.dropbox.com/scl/fi/49w4kiuvm86719yp226sv/rCMB_DefiniteSubject.zip?rlkey=hhs8kgb2vg62vrjhvjtgf4yxg&st=iyhofyyr&dl=0"
+    download_and_extract_dropbox_zip(dropbox_url)
+    st.success("✅ Download complete!")
+
+
 # Page Styles
 page_styles = {
     "Home": """
@@ -202,7 +215,7 @@ elif selected == "Ground Truth":
         st.session_state.slice_idx = 0
 
     nii_folder = "data/rCMB_DefiniteSubject"
-    excel_path = "data/rCMBInformationInfo.xlsx"
+    excel_path = "rCMBInformationInfo.xlsx"
 
     try:
         df = pd.read_excel(excel_path)
