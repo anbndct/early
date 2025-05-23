@@ -23,10 +23,8 @@ def download_and_extract_hf_zip(url, output_path="data"):
 
 # Jalankan hanya jika folder belum ada
 if not os.path.exists("data/rCMB_DefiniteSubject"):
-    st.info("📦 Downloading dataset from Hugging Face...")
     hf_url = "https://huggingface.co/datasets/anbndct/rcmb/resolve/main/rCMB_DefiniteSubject.zip"
     download_and_extract_hf_zip(hf_url)
-    st.success("✅ Download complete!")
 
 
 # Page Styles
