@@ -8,3 +8,4 @@ openai
 requests
 zipfile
 io
+os
