@@ -6,6 +6,8 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import gdown
+import zipfile
 
 # Page Styles
 page_styles = {
@@ -191,7 +193,7 @@ elif selected == "Ground Truth":
     
     # Path configuration
     nii_folder = "D:/SYNTHETIC CMB/data/PublicDataShare_2020/rCMB_DefiniteSubject"
-    excel_path = "D:/SYNTHETIC CMB/data/PublicDataShare_2020/rCMBInformationInfo.xlsx"
+    excel_path = "rCMBInformationInfo.xlsx"
     
     try:
         # Load Excel file
