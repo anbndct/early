@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import requests
 import zipfile
+import openpyxl
 
 def download_and_extract_hf_zip(url, output_path="data"):
     zip_path = "temp_data.zip"
