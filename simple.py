@@ -107,7 +107,7 @@ if selected == "Home":
         }
         .text-white {
             color: white;
-            font-size: 19px;
+            font-size: 18px;
         }
         ul {
             padding-left: 1.2rem;
