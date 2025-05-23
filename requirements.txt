@@ -6,3 +6,4 @@ pandas
 matplotlib
 openai
 requests
+openpyxl
