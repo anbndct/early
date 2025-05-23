@@ -13,23 +13,29 @@ import io
 
 def download_and_extract_dropbox_zip(url, output_path="data"):
     zip_path = "temp_data.zip"
-    os.makedirs(output_path, exist_ok=True)  # pastikan folder 'data' dibuat dulu
-    direct_url = url.replace("?dl=0", "?dl=1")  # pastikan link direct
-    with requests.get(direct_url, stream=True) as r:
+    os.makedirs(output_path, exist_ok=True)
+
+    with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(zip_path, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(output_path)
-    os.remove(zip_path)
 
-# Hanya unduh jika folder belum ada
+    # Pastikan file benar-benar zip
+    if zipfile.is_zipfile(zip_path):
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(output_path)
+        os.remove(zip_path)
+    else:
+        raise ValueError("Downloaded file is not a valid ZIP archive.")
+
+
 if not os.path.exists("data/rCMB_DefiniteSubject"):
-    st.info("Downloading dataset from Dropbox... ⏳")
-    dropbox_url = "https://www.dropbox.com/scl/fi/49w4kiuvm86719yp226sv/rCMB_DefiniteSubject.zip?rlkey=hhs8kgb2vg62vrjhvjtgf4yxg&st=iyhofyyr&dl=0"
+    st.info("Downloading dataset from Dropbox...")
+    dropbox_url = "https://www.dropbox.com/s/49w4kiuvm86719yp226sv/rCMB_DefiniteSubject.zip?dl=1"
     download_and_extract_dropbox_zip(dropbox_url)
     st.success("✅ Download complete!")
+
 
 
 # Page Styles
