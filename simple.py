@@ -203,19 +203,6 @@ if selected == "Home":
         with col2:
             st.markdown("**👨‍🏫 Prof. Dr. Tri Arief Sardjono, S.T., M.T.**  \nDosen Pembimbing II")
 
-    st.markdown('<div class="section-title">📂 Navigasi Lanjutan</div>', unsafe_allow_html=True)
-
-
-    st.markdown(
-        """<div class="text-white">
-        - 🧠 <b>Tentang Microbleeds</b><br>
-        - 🛠️ <b>Pre-processing Citra</b><br>
-        - 🤖 <b>Model Deteksi 3D FCN & 3D CNN</b><br>
-        - 🗂️ <b>Ground Truth & Evaluasi</b>
-        </div>""",
-        unsafe_allow_html=True,
-    )
-
         
 # Ground Truth Page
 elif selected == "Ground Truth":
