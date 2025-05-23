@@ -1,0 +1,7 @@
+streamlit
+streamlit-option-menu
+nibabel
+numpy
+pandas
+matplotlib
+openai
