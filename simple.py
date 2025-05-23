@@ -11,31 +11,24 @@ import zipfile
 import io
 
 
-def download_and_extract_dropbox_zip(url, output_path="data"):
+def download_and_extract_hf_zip(url, output_path="data"):
     zip_path = "temp_data.zip"
-    os.makedirs(output_path, exist_ok=True)
-
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(zip_path, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
 
-    # Pastikan file benar-benar zip
-    if zipfile.is_zipfile(zip_path):
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(output_path)
-        os.remove(zip_path)
-    else:
-        raise ValueError("Downloaded file is not a valid ZIP archive.")
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(output_path)
+    os.remove(zip_path)
 
-
+# Jalankan hanya jika folder belum ada
 if not os.path.exists("data/rCMB_DefiniteSubject"):
-    st.info("Downloading dataset from Dropbox...")
-    dropbox_url = "https://www.dropbox.com/s/49w4kiuvm86719yp226sv/rCMB_DefiniteSubject.zip?dl=1"
-    download_and_extract_dropbox_zip(dropbox_url)
+    st.info("📦 Downloading dataset from Hugging Face...")
+    hf_url = "https://huggingface.co/datasets/anbndct/rcmb/resolve/main/rCMB_DefiniteSubject.zip"
+    download_and_extract_hf_zip(hf_url)
     st.success("✅ Download complete!")
-
 
 
 # Page Styles
