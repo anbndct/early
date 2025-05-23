@@ -7,5 +7,4 @@ matplotlib
 openai
 requests
 zipfile
-io
 os
