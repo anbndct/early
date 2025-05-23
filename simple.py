@@ -105,6 +105,20 @@ if selected == "Home":
             font-weight: bold;
             margin-top: 2rem;
         }
+        .section-headline {
+            font-size: 30px;
+            font-weight: 800;
+            color: white;
+            margin-top: 1rem;
+            margin-bottom: 0.2rem;
+        }
+        
+        .section-subheadline {
+            font-size: 20px;
+            font-weight: 400;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
         .text-white {
             color: white;
             font-size: 18px;
@@ -117,8 +131,8 @@ if selected == "Home":
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="section-title">🧠 Deteksi Otomatis Perdarahan Mikro Serebral</div>', unsafe_allow_html=True)
-    st.markdown('<p class="text-white">Sistem Cerdas Berbasis Deep Learning untuk Citra MRI</p>', unsafe_allow_html=True)
+    st.markdown('<div class="section-headline">🧠 Deteksi Otomatis Perdarahan Mikro Serebral</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-subheadline">Sistem Cerdas Berbasis Deep Learning untuk Citra MRI</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">📍 Apa Itu Proyek Ini?</div>', unsafe_allow_html=True)
     st.markdown("""
