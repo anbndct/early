@@ -5,3 +5,5 @@ numpy
 pandas
 matplotlib
 openai
+gdown
+zipfile
