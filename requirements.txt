@@ -7,5 +7,6 @@ matplotlib
 requests
 scipy
 tensorflow
-tqdm
+pillow
 scikit-learn
+tqdm
