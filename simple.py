@@ -1,99 +1,94 @@
 import streamlit as st
-from streamlit_option_menu import option_menu
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import requests
 
-# Test basic functionality first
-st.set_page_config(page_title="CMB Detection", layout="wide")
+# Ultra minimal test - no external packages
+st.set_page_config(page_title="CMB Detection Test", layout="wide")
 
-# Basic CSS
+st.title("🧠 CMB Detection System - Debug Mode")
+
+st.write("If you can see this, basic Streamlit is working!")
+
+# Test basic Streamlit functionality
+if st.button("Test Button"):
+    st.success("✅ Button works!")
+
+# Simple sidebar without option_menu
+with st.sidebar:
+    page = st.selectbox("Select Page", ["Home", "Test", "Debug"])
+
+if page == "Home":
+    st.header("🏠 Home")
+    st.write("Welcome to CMB Detection System")
+    
+    # Test basic Python
+    try:
+        import numpy as np
+        st.success("✅ NumPy works!")
+        arr = np.array([1, 2, 3])
+        st.write(f"NumPy array: {arr}")
+    except Exception as e:
+        st.error(f"❌ NumPy error: {e}")
+    
+    try:
+        import pandas as pd
+        st.success("✅ Pandas works!")
+    except Exception as e:
+        st.error(f"❌ Pandas error: {e}")
+
+elif page == "Test":
+    st.header("🧪 Test Page")
+    
+    # Test matplotlib
+    try:
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot([1, 2, 3], [1, 4, 2])
+        ax.set_title("Test Plot")
+        st.pyplot(fig)
+        st.success("✅ Matplotlib works!")
+    except Exception as e:
+        st.error(f"❌ Matplotlib error: {e}")
+    
+    # Test requests
+    try:
+        import requests
+        st.success("✅ Requests imported!")
+    except Exception as e:
+        st.error(f"❌ Requests error: {e}")
+
+elif page == "Debug":
+    st.header("🔧 Debug Info")
+    
+    import sys
+    st.write("**Python Version:**", sys.version)
+    
+    # Check problematic imports one by one
+    imports_to_test = [
+        "numpy",
+        "pandas", 
+        "matplotlib",
+        "requests",
+        "streamlit_option_menu",
+        "scipy",
+        "tensorflow",
+        "nibabel",
+        "sklearn"
+    ]
+    
+    for pkg in imports_to_test:
+        try:
+            __import__(pkg)
+            st.success(f"✅ {pkg} - OK")
+        except ImportError as e:
+            st.error(f"❌ {pkg} - Import Error: {e}")
+        except Exception as e:
+            st.error(f"❌ {pkg} - Other Error: {e}")
+
+# Simple CSS
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(to bottom right, #D36BA3, #974578);
     color: white;
 }
-.text-white {
-    color: white;
-    font-size: 18px;
-}
 </style>
 """, unsafe_allow_html=True)
-
-# Sidebar menu
-with st.sidebar:
-    selected = option_menu(
-        "CMB Detection",
-        ["Home", "Test", "Debug"],
-        default_index=0
-    )
-
-if selected == "Home":
-    st.title("🧠 CMB Detection System")
-    st.markdown('<div class="text-white">Basic app is working!</div>', unsafe_allow_html=True)
-    
-    # Test basic functionality
-    if st.button("Test Button"):
-        st.success("✅ Button works!")
-    
-    # Test numpy
-    try:
-        arr = np.array([1, 2, 3])
-        st.write(f"Numpy test: {arr}")
-    except Exception as e:
-        st.error(f"Numpy error: {e}")
-    
-    # Test matplotlib
-    try:
-        fig, ax = plt.subplots()
-        ax.plot([1, 2, 3], [1, 4, 2])
-        st.pyplot(fig)
-    except Exception as e:
-        st.error(f"Matplotlib error: {e}")
-
-elif selected == "Test":
-    st.title("🧪 Test Page")
-    
-    # Test requests
-    try:
-        st.info("Testing HF connection...")
-        response = requests.get("https://huggingface.co/datasets/anbndct/NII_MRI_CMB", timeout=10)
-        if response.status_code == 200:
-            st.success("✅ HF connection works!")
-        else:
-            st.warning(f"HF response: {response.status_code}")
-    except Exception as e:
-        st.error(f"HF connection error: {e}")
-    
-    # Test file upload
-    uploaded_file = st.file_uploader("Test file upload", type=['npy', 'txt'])
-    if uploaded_file:
-        st.success("✅ File upload works!")
-
-elif selected == "Debug":
-    st.title("🔧 Debug Info")
-    
-    # Show environment info
-    import sys
-    st.write("Python version:", sys.version)
-    
-    # Show installed packages
-    try:
-        import tensorflow as tf
-        st.write("TensorFlow version:", tf.__version__)
-    except Exception as e:
-        st.error(f"TensorFlow error: {e}")
-    
-    try:
-        import nibabel as nib
-        st.write("Nibabel imported successfully")
-    except Exception as e:
-        st.error(f"Nibabel error: {e}")
-    
-    try:
-        import scipy
-        st.write("Scipy version:", scipy.__version__)
-    except Exception as e:
-        st.error(f"Scipy error: {e}")
