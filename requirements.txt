@@ -5,3 +5,5 @@ matplotlib
 requests
 streamlit-option-menu
 pillow
+scipy
+scikit-learn
