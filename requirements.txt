@@ -4,6 +4,9 @@ nibabel
 numpy
 pandas
 matplotlib
-openai
 requests
-openpyxl
+scipy
+tensorflow
+tqdm
+scikit-learn
+
