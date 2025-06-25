@@ -5,8 +5,7 @@ numpy
 pandas
 matplotlib
 requests
-scipy
+scipy.io
 tensorflow
 tqdm
 scikit-learn
-
