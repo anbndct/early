@@ -105,6 +105,8 @@ GT_TOLERANCE = 7
 # Dataset Configuration
 HUGGINGFACE_BASE_URL = "https://huggingface.co/datasets/anbndct/NII_MRI_CMB/resolve/main"
 FCN_RESULTS_URL = "https://huggingface.co/datasets/anbndct/NII_MRI_CMB/resolve/main/fcn_results.npy"
+FCN_MODEL_URL = "https://huggingface.co/datasets/anbndct/NII_MRI_CMB/resolve/main/fcn_precision_focused_best.h5"
+CNN_MODEL_URL = "https://huggingface.co/datasets/anbndct/NII_MRI_CMB/resolve/main/stage2_cnn_final.h5"
 
 # Dataset metadata - matches your actual file naming (01.nii, 02.nii, etc.)
 DATASET_INFO = {
@@ -288,6 +290,46 @@ def load_cmb_volume_data(volume_id):
         st.error(f"Error loading Volume {volume_id}: {str(e)}")
         return None, None
 
+@st.cache_resource
+def load_fcn_model():
+    """Load FCN model from Hugging Face"""
+    try:
+        st.info("📥 Loading FCN model from Hugging Face...")
+        response = requests.get(FCN_MODEL_URL)
+        response.raise_for_status()
+        
+        with tempfile.NamedTemporaryFile(suffix='.h5') as temp_file:
+            temp_file.write(response.content)
+            temp_file.flush()
+            model = load_model(temp_file.name)
+        
+        st.success("✅ FCN model loaded successfully!")
+        return model
+        
+    except Exception as e:
+        st.error(f"❌ Failed to load FCN model: {str(e)}")
+        return None
+
+@st.cache_resource
+def load_cnn_model():
+    """Load CNN model from Hugging Face"""
+    try:
+        st.info("📥 Loading CNN model from Hugging Face...")
+        response = requests.get(CNN_MODEL_URL)
+        response.raise_for_status()
+        
+        with tempfile.NamedTemporaryFile(suffix='.h5') as temp_file:
+            temp_file.write(response.content)
+            temp_file.flush()
+            model = load_model(temp_file.name, custom_objects=CUSTOM_OBJECTS)
+        
+        st.success("✅ CNN model loaded successfully!")
+        return model
+        
+    except Exception as e:
+        st.error(f"❌ Failed to load CNN model: {str(e)}")
+        return None
+
 @st.cache_data(ttl=3600)
 def load_fcn_results():
     """Load pre-computed FCN results from Hugging Face"""
@@ -303,8 +345,6 @@ def load_fcn_results():
     except Exception as e:
         st.error(f"❌ Failed to load FCN results: {str(e)}")
         return None
-
-def analyze_fcn_npy(uploaded_file):
     """Analyze uploaded FCN .npy file to extract metadata"""
     try:
         fcn_results = np.load(uploaded_file, allow_pickle=True).item()
@@ -1024,16 +1064,11 @@ elif selected == "CMB Detection":
                 st.info(f"🎯 Selected volumes: {selected_volumes}")
                 
                 # Load CNN model
-                @st.cache_resource
-                def load_cnn_model():
-                    st.warning("⚠️ CNN model not loaded. Please upload your trained CNN model.")
-                    return None
-                
                 cnn_model = load_cnn_model()
                 
                 if st.button("🚀 Start CNN Processing", type="primary"):
                     if cnn_model is None:
-                        st.error("Please load the CNN model first!")
+                        st.error("Please check CNN model loading!")
                     else:
                         # Process each selected volume
                         for vol_id in selected_volumes:
@@ -1051,19 +1086,10 @@ elif selected == "CMB Detection":
                                 X_patches, valid_candidates = extract_cnn_patches(volume_data, fcn_candidates)
                                 
                                 if X_patches is not None:
-                                    # Mock CNN inference (replace with actual model)
-                                    final_candidates = []
-                                    rejected_candidates = []
-                                    
-                                    for candidate in valid_candidates:
-                                        mock_score = np.random.rand()
-                                        enhanced_candidate = candidate.copy()
-                                        enhanced_candidate['cnn_score'] = float(mock_score)
-                                        
-                                        if mock_score >= CNN_THRESHOLD:
-                                            final_candidates.append(enhanced_candidate)
-                                        else:
-                                            rejected_candidates.append(enhanced_candidate)
+                                    # Real CNN inference
+                                    final_candidates, rejected_candidates, cnn_probs = cnn_inference(
+                                        cnn_model, X_patches, valid_candidates
+                                    )
                                     
                                     # Results display
                                     col1, col2, col3 = st.columns(3)
@@ -1205,7 +1231,13 @@ elif selected == "CMB Detection":
                 
                 # CNN Processing
                 if st.button("🔍 Process with CNN", type="primary"):
-                    for vol_id in selected_volumes:
+                    # Load CNN model
+                    cnn_model = load_cnn_model()
+                    
+                    if cnn_model is None:
+                        st.error("Failed to load CNN model!")
+                    else:
+                        for vol_id in selected_volumes:
                         if vol_id in selected_fcn_data:
                             st.markdown(f"### 📊 Volume {vol_id} CNN Results")
                             
@@ -1220,19 +1252,10 @@ elif selected == "CMB Detection":
                                 X_patches, valid_candidates = extract_cnn_patches(volume_data, fcn_candidates)
                                 
                                 if X_patches is not None:
-                                    # Mock CNN results (replace with actual inference)
-                                    final_candidates = []
-                                    rejected_candidates = []
-                                    
-                                    for candidate in valid_candidates:
-                                        mock_score = np.random.rand()
-                                        enhanced_candidate = candidate.copy()
-                                        enhanced_candidate['cnn_score'] = float(mock_score)
-                                        
-                                        if mock_score >= CNN_THRESHOLD:
-                                            final_candidates.append(enhanced_candidate)
-                                        else:
-                                            rejected_candidates.append(enhanced_candidate)
+                                    # Real CNN inference
+                                    final_candidates, rejected_candidates, cnn_probs = cnn_inference(
+                                        cnn_model, X_patches, valid_candidates
+                                    )
                                     
                                     # Results display
                                     col1, col2 = st.columns(2)
@@ -1290,103 +1313,130 @@ elif selected == "CMB Detection":
         # Model loading
         st.markdown("#### 🤖 Model Loading")
         
-        fcn_model_file = st.file_uploader("Upload FCN Model (.h5)", type=['h5'], key="fcn_model")
-        cnn_model_file = st.file_uploader("Upload CNN Model (.h5)", type=['h5'], key="cnn_model")
+        # Option to use HF models or upload custom
+        model_source = st.radio(
+            "Choose model source:",
+            ["Use HF Models (Recommended)", "Upload Custom Models"]
+        )
         
-        if fcn_model_file and cnn_model_file:
-            # Load models
-            with tempfile.NamedTemporaryFile(suffix='.h5') as fcn_temp:
-                fcn_temp.write(fcn_model_file.read())
-                fcn_temp.flush()
+        if model_source == "Use HF Models (Recommended)":
+            st.info("📦 Models will be automatically loaded from Hugging Face")
+            
+            # Pre-load models
+            if st.button("📥 Load Models from HF", type="primary"):
+                fcn_model = load_fcn_model()
+                cnn_model = load_cnn_model()
                 
-                with tempfile.NamedTemporaryFile(suffix='.h5') as cnn_temp:
-                    cnn_temp.write(cnn_model_file.read())
-                    cnn_temp.flush()
+                if fcn_model and cnn_model:
+                    st.session_state.fcn_model = fcn_model
+                    st.session_state.cnn_model = cnn_model
+                    st.success("✅ Both models loaded successfully!")
+                else:
+                    st.error("❌ Failed to load models")
+            
+            # Check if models are loaded
+            models_ready = 'fcn_model' in st.session_state and 'cnn_model' in st.session_state
+            
+        else:  # Upload Custom Models
+            fcn_model_file = st.file_uploader("Upload FCN Model (.h5)", type=['h5'], key="fcn_model")
+            cnn_model_file = st.file_uploader("Upload CNN Model (.h5)", type=['h5'], key="cnn_model")
+            models_ready = fcn_model_file and cnn_model_file
+        
+        if models_ready:
+            # Start inference
+            if st.button("🚀 Start Full Pipeline Inference", type="primary"):
+                st.markdown(f"### 🔄 Processing Volume {selected_volume}")
+                
+                # Load volume
+                volume_data, gt_data = load_cmb_volume_data(selected_volume)
+                
+                if volume_data is not None:
+                    st.info(f"📊 Volume shape: {volume_data.shape}")
                     
-                    try:
-                        fcn_model = load_model(fcn_temp.name)
-                        cnn_model = load_model(cnn_temp.name, custom_objects=CUSTOM_OBJECTS)
-                        
-                        st.success("✅ Models loaded successfully!")
-                        
-                        # Start inference
-                        if st.button("🚀 Start Full Pipeline Inference", type="primary"):
-                            st.markdown(f"### 🔄 Processing Volume {selected_volume}")
+                    # Get models
+                    if model_source == "Use HF Models (Recommended)":
+                        fcn_model = st.session_state.fcn_model
+                        cnn_model = st.session_state.cnn_model
+                    else:
+                        # Load from uploaded files
+                        with tempfile.NamedTemporaryFile(suffix='.h5') as fcn_temp:
+                            fcn_temp.write(fcn_model_file.read())
+                            fcn_temp.flush()
+                            fcn_model = load_model(fcn_temp.name)
                             
-                            # Load volume
-                            volume_data, gt_data = load_cmb_volume_data(selected_volume)
-                            
-                            if volume_data is not None:
-                                st.info(f"📊 Volume shape: {volume_data.shape}")
-                                
-                                # FCN Stage
-                                st.markdown("#### 🎯 Stage 1: FCN Processing")
-                                
-                                # Create brain mask
-                                brain_mask = create_brain_mask(volume_data)
-                                st.success(f"✅ Brain mask created")
-                                
-                                # FCN inference
-                                score_map = fcn_inference(fcn_model, volume_data)
-                                score_map_masked = score_map * brain_mask
-                                
-                                # FCN clustering and NMS
-                                fcn_candidates = fcn_clustering_nms(score_map_masked)
-                                st.success(f"✅ FCN completed: {len(fcn_candidates)} candidates")
-                                
-                                # CNN Stage
-                                st.markdown("#### 🎯 Stage 2: CNN Processing")
-                                
-                                X_patches, valid_candidates = extract_cnn_patches(volume_data, fcn_candidates)
-                                
-                                if X_patches is not None:
-                                    final_candidates, rejected_candidates, cnn_probs = cnn_inference(
-                                        cnn_model, X_patches, valid_candidates
-                                    )
-                                    
-                                    st.success(f"✅ CNN completed: {len(final_candidates)} final detections")
-                                    
-                                    # Results display
-                                    col1, col2, col3 = st.columns(3)
-                                    with col1:
-                                        st.metric("FCN Candidates", len(fcn_candidates))
-                                    with col2:
-                                        st.metric("Valid for CNN", len(valid_candidates))
-                                    with col3:
-                                        st.metric("Final Detections", len(final_candidates))
-                                    
-                                    # Visualization
-                                    gt_coords = gt_data.get('cen', []) if gt_data else None
-                                    
-                                    if len(final_candidates) > 0:
-                                        z_coords = [int(c['coordinate'][2]) for c in final_candidates]
-                                        best_slice = max(set(z_coords), key=z_coords.count)
-                                    else:
-                                        best_slice = volume_data.shape[2] // 2
-                                    
-                                    fig = create_detection_visualization(
-                                        volume_data, final_candidates, rejected_candidates, best_slice, gt_coords
-                                    )
-                                    st.pyplot(fig)
-                                    
-                                    # Detailed results
-                                    if final_candidates:
-                                        with st.expander(f"📋 Detailed Results - Volume {selected_volume}"):
-                                            for j, candidate in enumerate(final_candidates):
-                                                coord = candidate['coordinate']
-                                                st.write(f"**Detection {j+1}:** "
-                                                        f"Position ({coord[0]}, {coord[1]}, {coord[2]}) - "
-                                                        f"FCN Score: {candidate['fcn_score']:.3f}, "
-                                                        f"CNN Score: {candidate['cnn_score']:.3f}")
-                                else:
-                                    st.warning("No valid patches could be extracted from FCN candidates")
-                            else:
-                                st.error("Failed to load volume data")
-                                
-                    except Exception as e:
-                        st.error(f"Error loading models: {str(e)}")
+                        with tempfile.NamedTemporaryFile(suffix='.h5') as cnn_temp:
+                            cnn_temp.write(cnn_model_file.read())
+                            cnn_temp.flush()
+                            cnn_model = load_model(cnn_temp.name, custom_objects=CUSTOM_OBJECTS)
+                    
+                    # FCN Stage
+                    st.markdown("#### 🎯 Stage 1: FCN Processing")
+                    
+                    # Create brain mask
+                    brain_mask = create_brain_mask(volume_data)
+                    st.success(f"✅ Brain mask created")
+                    
+                    # FCN inference
+                    score_map = fcn_inference(fcn_model, volume_data)
+                    score_map_masked = score_map * brain_mask
+                    
+                    # FCN clustering and NMS
+                    fcn_candidates = fcn_clustering_nms(score_map_masked)
+                    st.success(f"✅ FCN completed: {len(fcn_candidates)} candidates")
+                    
+                    # CNN Stage
+                    st.markdown("#### 🎯 Stage 2: CNN Processing")
+                    
+                    X_patches, valid_candidates = extract_cnn_patches(volume_data, fcn_candidates)
+                    
+                    if X_patches is not None:
+                        final_candidates, rejected_candidates, cnn_probs = cnn_inference(
+                            cnn_model, X_patches, valid_candidates
+                        )
+                        
+                        st.success(f"✅ CNN completed: {len(final_candidates)} final detections")
+                        
+                        # Results display
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("FCN Candidates", len(fcn_candidates))
+                        with col2:
+                            st.metric("Valid for CNN", len(valid_candidates))
+                        with col3:
+                            st.metric("Final Detections", len(final_candidates))
+                        
+                        # Visualization
+                        gt_coords = gt_data.get('cen', []) if gt_data else None
+                        
+                        if len(final_candidates) > 0:
+                            z_coords = [int(c['coordinate'][2]) for c in final_candidates]
+                            best_slice = max(set(z_coords), key=z_coords.count)
+                        else:
+                            best_slice = volume_data.shape[2] // 2
+                        
+                        fig = create_detection_visualization(
+                            volume_data, final_candidates, rejected_candidates, best_slice, gt_coords
+                        )
+                        st.pyplot(fig)
+                        
+                        # Detailed results
+                        if final_candidates:
+                            with st.expander(f"📋 Detailed Results - Volume {selected_volume}"):
+                                for j, candidate in enumerate(final_candidates):
+                                    coord = candidate['coordinate']
+                                    st.write(f"**Detection {j+1}:** "
+                                            f"Position ({coord[0]}, {coord[1]}, {coord[2]}) - "
+                                            f"FCN Score: {candidate['fcn_score']:.3f}, "
+                                            f"CNN Score: {candidate['cnn_score']:.3f}")
+                    else:
+                        st.warning("No valid patches could be extracted from FCN candidates")
+                else:
+                    st.error("Failed to load volume data")
         else:
-            st.warning("Please upload both FCN and CNN models to proceed")
+            if model_source == "Use HF Models (Recommended)":
+                st.warning("Please load models from Hugging Face first")
+            else:
+                st.warning("Please upload both FCN and CNN models to proceed")
 
 # Chatbot Page
 elif selected == "Chatbot":
