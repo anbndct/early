@@ -1,12 +1,5 @@
 streamlit
-streamlit-option-menu
-nibabel
 numpy
 pandas
 matplotlib
 requests
-scipy
-tensorflow
-pillow
-scikit-learn
-tqdm
