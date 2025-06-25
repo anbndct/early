@@ -1238,48 +1238,48 @@ elif selected == "CMB Detection":
                         st.error("Failed to load CNN model!")
                     else:
                         for vol_id in selected_volumes:
-                        if vol_id in selected_fcn_data:
-                            st.markdown(f"### 📊 Volume {vol_id} CNN Results")
-                            
-                            fcn_data = selected_fcn_data[vol_id]
-                            fcn_candidates = fcn_data['fcn_candidates']
-                            
-                            # Load corresponding volume
-                            volume_data, gt_data = load_cmb_volume_data(vol_id)
-                            
-                            if volume_data is not None:
-                                # CNN Processing
-                                X_patches, valid_candidates = extract_cnn_patches(volume_data, fcn_candidates)
+                            if vol_id in selected_fcn_data:
+                                st.markdown(f"### 📊 Volume {vol_id} CNN Results")
                                 
-                                if X_patches is not None:
-                                    # Real CNN inference
-                                    final_candidates, rejected_candidates, cnn_probs = cnn_inference(
-                                        cnn_model, X_patches, valid_candidates
-                                    )
+                                fcn_data = selected_fcn_data[vol_id]
+                                fcn_candidates = fcn_data['fcn_candidates']
+                                
+                                # Load corresponding volume
+                                volume_data, gt_data = load_cmb_volume_data(vol_id)
+                                
+                                if volume_data is not None:
+                                    # CNN Processing
+                                    X_patches, valid_candidates = extract_cnn_patches(volume_data, fcn_candidates)
                                     
-                                    # Results display
-                                    col1, col2 = st.columns(2)
-                                    with col1:
-                                        st.metric("FCN Candidates", len(fcn_candidates))
-                                    with col2:
-                                        st.metric("Final Detections", len(final_candidates))
-                                    
-                                    # Visualization
-                                    gt_coords = gt_data.get('cen', []) if gt_data else None
-                                    
-                                    if len(final_candidates) > 0:
-                                        z_coords = [int(c['coordinate'][2]) for c in final_candidates]
-                                        best_slice = max(set(z_coords), key=z_coords.count)
+                                    if X_patches is not None:
+                                        # Real CNN inference
+                                        final_candidates, rejected_candidates, cnn_probs = cnn_inference(
+                                            cnn_model, X_patches, valid_candidates
+                                        )
+                                        
+                                        # Results display
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            st.metric("FCN Candidates", len(fcn_candidates))
+                                        with col2:
+                                            st.metric("Final Detections", len(final_candidates))
+                                        
+                                        # Visualization
+                                        gt_coords = gt_data.get('cen', []) if gt_data else None
+                                        
+                                        if len(final_candidates) > 0:
+                                            z_coords = [int(c['coordinate'][2]) for c in final_candidates]
+                                            best_slice = max(set(z_coords), key=z_coords.count)
+                                        else:
+                                            best_slice = volume_data.shape[2] // 2
+                                        
+                                        fig = create_detection_visualization(
+                                            volume_data, final_candidates, rejected_candidates, best_slice, gt_coords
+                                        )
+                                        st.pyplot(fig)
                                     else:
-                                        best_slice = volume_data.shape[2] // 2
-                                    
-                                    fig = create_detection_visualization(
-                                        volume_data, final_candidates, rejected_candidates, best_slice, gt_coords
-                                    )
-                                    st.pyplot(fig)
-                                else:
-                                    st.warning("No valid patches could be extracted from FCN candidates")
-    
+                                        st.warning("No valid patches could be extracted from FCN candidates")
+        
     # ===============================================================
     # OPTION 3: Real-time FCN + CNN Inference
     # ===============================================================
