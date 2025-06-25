@@ -6,6 +6,27 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import requests
+import zipfile
+import openpyxl
+
+def download_and_extract_hf_zip(url, output_path="data"):
+    zip_path = "temp_data.zip"
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(zip_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(output_path)
+    os.remove(zip_path)
+
+# Jalankan hanya jika folder belum ada
+if not os.path.exists("data/rCMB_DefiniteSubject"):
+    hf_url = "https://huggingface.co/datasets/anbndct/rcmb/resolve/main/rCMB_DefiniteSubject.zip"
+    download_and_extract_hf_zip(hf_url)
+
 
 # Page Styles
 page_styles = {
@@ -84,9 +105,23 @@ if selected == "Home":
             font-weight: bold;
             margin-top: 2rem;
         }
+        .section-headline {
+            font-size: 30px;
+            font-weight: 800;
+            color: white;
+            margin-top: 1rem;
+            margin-bottom: 0.2rem;
+        }
+        
+        .section-subheadline {
+            font-size: 20px;
+            font-weight: 400;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
         .text-white {
             color: white;
-            font-size: 19px;
+            font-size: 18px;
         }
         ul {
             padding-left: 1.2rem;
@@ -96,8 +131,8 @@ if selected == "Home":
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="section-title">🧠 Deteksi Otomatis Perdarahan Mikro Serebral</div>', unsafe_allow_html=True)
-    st.markdown('<p class="text-white">Sistem Cerdas Berbasis Deep Learning untuk Citra MRI</p>', unsafe_allow_html=True)
+    st.markdown('<div class="section-headline">🧠 Deteksi Otomatis Perdarahan Mikro Serebral</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-subheadline">Sistem Cerdas Berbasis Deep Learning untuk Citra MRI</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">📍 Apa Itu Proyek Ini?</div>', unsafe_allow_html=True)
     st.markdown("""
@@ -168,57 +203,34 @@ if selected == "Home":
         with col2:
             st.markdown("**👨‍🏫 Prof. Dr. Tri Arief Sardjono, S.T., M.T.**  \nDosen Pembimbing II")
 
-    st.markdown('<div class="section-title">📂 Navigasi Lanjutan</div>', unsafe_allow_html=True)
-
-
-    st.markdown(
-        """<div class="text-white">
-        - 🧠 <b>Tentang Microbleeds</b><br>
-        - 🛠️ <b>Pre-processing Citra</b><br>
-        - 🤖 <b>Model Deteksi 3D FCN & 3D CNN</b><br>
-        - 🗂️ <b>Ground Truth & Evaluasi</b>
-        </div>""",
-        unsafe_allow_html=True,
-    )
-
         
+# Ground Truth Page
 elif selected == "Ground Truth":
     st.title("Ground Truth Visualization")
-    
-    # Initialize session state if not already present
+
     if 'slice_idx' not in st.session_state:
         st.session_state.slice_idx = 0
-    
-    # Path configuration
-    nii_folder = "D:/SYNTHETIC CMB/data/PublicDataShare_2020/rCMB_DefiniteSubject"
-    excel_path = "D:/SYNTHETIC CMB/data/PublicDataShare_2020/rCMBInformationInfo.xlsx"
-    
+
+    nii_folder = "data/rCMB_DefiniteSubject"
+    excel_path = "rCMBInformationInfo.xlsx"
+
     try:
-        # Load Excel file
         df = pd.read_excel(excel_path)
         nii_files = df.iloc[:, 0].tolist()
-        
-        # File selection
         selected_file = st.selectbox("Select NIfTI file:", nii_files)
-        
-        # Load NIfTI image
+
         nii_path = os.path.join(nii_folder, selected_file)
         img = nib.load(nii_path)
         data = img.get_fdata()
-        
-        # Get matching row from Excel
         row = df[df.iloc[:, 0] == selected_file].iloc[0].values[1:]
-        
-        # Find all unique slices with microbleeds
+
         cmb_slices = set()
-        cmb_info = []  # Store (slice, cmb_number) pairs
-        
+        cmb_info = []
         cmb_count = 0
         for i in range(0, len(row), 3):
             coords = row[i:i+3]
             if pd.isna(coords).any() or any(str(x).strip() == '' for x in coords):
                 continue
-                
             try:
                 z = int(float(coords[2]))
                 cmb_count += 1
@@ -226,87 +238,52 @@ elif selected == "Ground Truth":
                 cmb_info.append((z, cmb_count))
             except (ValueError, TypeError):
                 continue
-        
-        # Set default slice (first with CMBs or middle if none)
+
         if cmb_slices:
             if 'prev_file' not in st.session_state or st.session_state.prev_file != selected_file:
                 st.session_state.slice_idx = sorted(cmb_slices)[0]
                 st.session_state.prev_file = selected_file
         else:
             st.session_state.slice_idx = data.shape[2] // 2
-        
-        # Create navigation buttons
+
         if cmb_slices:
             st.write("**Quick navigation to microbleeds:**")
             slices_sorted = sorted(cmb_slices)
-            cols_per_row = 4  # Biar lebih lebar
-
+            cols_per_row = 4
             for row_idx in range(0, len(slices_sorted), cols_per_row):
                 cols = st.columns(cols_per_row)
                 for col_idx, z in enumerate(slices_sorted[row_idx:row_idx+cols_per_row]):
                     cmbs_on_slice = [c[1] for c in cmb_info if c[0] == z]
                     label = f"Slice {z} ({len(cmbs_on_slice)} CMB)"
                     with cols[col_idx]:
-                        # Tambahkan st.container agar tombol ga dipotong
-                        with st.container():
-                            if st.button(label, key=f"cmb_nav_{z}"):
-                                st.session_state.slice_idx = z
-                                st.rerun()
+                        if st.button(label, key=f"cmb_nav_{z}"):
+                            st.session_state.slice_idx = z
+                            st.rerun()
 
-        
-        # Slice selection slider
-        slice_idx = st.slider(
-            "Manual slice selection:", 
-            0, 
-            data.shape[2] - 1, 
-            st.session_state.slice_idx,
-            key="slice_slider"
-        )
-        
-        # Update session state if slider was manually moved
+        slice_idx = st.slider("Manual slice selection:", 0, data.shape[2] - 1, st.session_state.slice_idx, key="slice_slider")
         if slice_idx != st.session_state.slice_idx:
             st.session_state.slice_idx = slice_idx
-        
-        # Create plot
+
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.imshow(data[:, :, st.session_state.slice_idx].T, cmap="gray", origin="lower")
-        
-        # Plot microbleeds on current slice
+
         current_cmb_count = 0
         for i in range(0, len(row), 3):
             coords = row[i:i+3]
             if pd.isna(coords).any() or any(str(x).strip() == '' for x in coords):
                 continue
-                
             try:
                 x, y, z = int(float(coords[0])), int(float(coords[1])), int(float(coords[2]))
-                
                 if z == st.session_state.slice_idx:
                     current_cmb_count += 1
-                    rect = patches.Rectangle(
-                        (x - 2, y - 2), 
-                        4, 4, 
-                        linewidth=2, 
-                        edgecolor='lime', 
-                        facecolor='none'
-                    )
+                    rect = patches.Rectangle((x - 2, y - 2), 4, 4, linewidth=2, edgecolor='lime', facecolor='none')
                     ax.add_patch(rect)
-                    
-                    # Add text label
-                    ax.text(
-                        x + 3, y - 3, 
-                        f"CMB {current_cmb_count}", 
-                        color='lime', 
-                        fontsize=10, 
-                        weight='bold'
-                    )
-                    
+                    ax.text(x + 3, y - 3, f"CMB {current_cmb_count}", color='lime', fontsize=10, weight='bold')
             except (ValueError, TypeError):
                 continue
-        
+
         st.pyplot(fig)
-        
-        # Show summary info
+
         if cmb_slices:
             st.success(f"**File summary:** {cmb_count} microbleeds across {len(cmb_slices)} slice(s)")
             if st.session_state.slice_idx in cmb_slices:
@@ -316,7 +293,7 @@ elif selected == "Ground Truth":
                 st.warning("No microbleeds on current slice")
         else:
             st.warning("No microbleeds found in this file")
-            
+
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
@@ -397,19 +374,6 @@ elif selected == "Get to Know Microbleeds":
         """)
         st.video("https://www.youtube.com/watch?v=oSb_xKGhytY")
 
-
-
-elif selected == "Pre-processing":
-    st.title("Pre-processing")
-    st.write("Pre-processing steps...")
-
-elif selected == "3D FCN":
-    st.title("3D Fully Convolutional Network")
-    st.write("Details about 3D FCN...")
-
-elif selected == "3D CNN":
-    st.title("3D Convolutional Neural Network")
-    st.write("Details about 3D CNN...")
 
 elif selected == "Chatbot":
     st.title("🧠 Cerebral Microbleeds Expert Chatbot")
