@@ -122,7 +122,7 @@ elif selected == "Get to Know Microbleeds":
     - [Cerebral Microbleeds: Imaging and Clinical Significance (RSNA)](https://pubs.rsna.org/doi/abs/10.1148/radiol.2018170803)
     """)
     with st.expander("🎥 Tonton Video Penjelasan (Inggris)"):
-        st.video("https://www.youtube.com/watch?v=kmpmy4Q9l-E", start_time=156) # Starts at 2:36
+        st.video("https://youtu.be/oSb_xKGhytY?si=P-YowzwZHTcSSAoN", start_time=156) # Starts at 2:36
         st.caption("Segmen yang direkomendasikan: 2:36 hingga 17:00, membahas penampilan CMB pada scan, penyebab, dan dampak klinisnya.")
 
 # CMB detection Page
