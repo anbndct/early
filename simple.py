@@ -168,42 +168,50 @@ if selected == "Home":
     </div>
     """, unsafe_allow_html=True)
 
-    # CSS bulet + fix ukuran
+    # CSS untuk membuat output st.image menjadi bulat
     st.markdown("""
         <style>
-            .circle-img {
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                object-fit: cover;
-                object-position: center;
-            }
+        [data-testid="stVerticalBlock"] [data-testid="stImage"] img {
+            border-radius: 50%;
+            object-fit: cover;
+            width: 100px;
+            height: 100px;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">🎓 Tentang Kami</div>', unsafe_allow_html=True)
 
+    # --- Benedicta ---
     with st.container():
         col1, col2 = st.columns([1, 4])
         with col1:
-            st.markdown('<img src="https://i.imgur.com/ZPrugfv.jpg" class="circle-img">', unsafe_allow_html=True)
+            # Menggunakan st.image, bukan st.markdown
+            st.image("https://i.imgur.com/ZPrugfv.jpg")
         with col2:
             st.markdown("**👩‍🔬 Benedicta Sabdaningtyas Pratita Pratanjana** \nMahasiswa Teknik Biomedik ITS")
+            st.write("") # Memberi sedikit spasi
 
+    # --- Dr. Norma ---
     with st.container():
         col1, col2 = st.columns([1, 4])
         with col1:
-            st.markdown('<img src="https://i.imgur.com/5WFquuD.jpg" class="circle-img">', unsafe_allow_html=True)
+            # Menggunakan st.image
+            st.image("https://i.imgur.com/5WFquuD.jpg")
         with col2:
             st.markdown("**👨‍🏫 Dr. Norma Hermawan, S.T., M.T., M.Sc.** \nDosen Pembimbing I")
+            st.write("") # Memberi sedikit spasi
 
+    # --- Prof. Tri Arief ---
     with st.container():
         col1, col2 = st.columns([1, 4])
         with col1:
-            st.markdown('<img src="https://i.imgur.com/sGTdZfZ.jpg" class="circle-img">', unsafe_allow_html=True)
+            # Menggunakan st.image
+            st.image("https://i.imgur.com/sGTdZfZ.jpg")
         with col2:
             st.markdown("**👨‍🏫 Prof. Dr. Tri Arief Sardjono, S.T., M.T.** \nDosen Pembimbing II")
-
+            st.write("") # Memberi sedikit spasi
+            
 elif selected == "Get to Know Microbleeds":
     st.title("🧠 Get to Know Microbleeds")
 
