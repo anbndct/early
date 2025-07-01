@@ -9,6 +9,7 @@ import matplotlib.patches as patches
 import requests
 import zipfile
 import openpyxl
+from openai import OpenAI # <-- Import dipindahkan ke atas
 
 def download_and_extract_hf_zip(url, output_path="data"):
     zip_path = "temp_data.zip"
@@ -61,7 +62,7 @@ st.markdown("""
 with st.sidebar:
     selected = option_menu(
         "Cerebral Microbleeds Detection",
-        ["Home", "Get to Know Microbleeds", "Ground Truth", "Chatbot", "Project FAQ"],
+        ["Home", "Get to Know Microbleeds", "Chatbot", "Project FAQ"],
         default_index=0
     )
 
@@ -187,115 +188,21 @@ if selected == "Home":
         with col1:
             st.markdown('<img src="https://i.imgur.com/ZPrugfv.jpg" class="circle-img">', unsafe_allow_html=True)
         with col2:
-            st.markdown("**👩‍🔬 Benedicta Sabdaningtyas Pratita Pratanjana**  \nMahasiswa Teknik Biomedik ITS")
+            st.markdown("**👩‍🔬 Benedicta Sabdaningtyas Pratita Pratanjana** \nMahasiswa Teknik Biomedik ITS")
 
     with st.container():
         col1, col2 = st.columns([1, 4])
         with col1:
             st.markdown('<img src="https://i.imgur.com/5WFquuD.jpg" class="circle-img">', unsafe_allow_html=True)
         with col2:
-            st.markdown("**👨‍🏫 Dr. Norma Hermawan, S.T., M.T., M.Sc.**  \nDosen Pembimbing I")
+            st.markdown("**👨‍🏫 Dr. Norma Hermawan, S.T., M.T., M.Sc.** \nDosen Pembimbing I")
 
     with st.container():
         col1, col2 = st.columns([1, 4])
         with col1:
             st.markdown('<img src="https://i.imgur.com/sGTdZfZ.jpg" class="circle-img">', unsafe_allow_html=True)
         with col2:
-            st.markdown("**👨‍🏫 Prof. Dr. Tri Arief Sardjono, S.T., M.T.**  \nDosen Pembimbing II")
-
-        
-# Ground Truth Page
-elif selected == "Ground Truth":
-    st.title("Ground Truth Visualization")
-
-    if 'slice_idx' not in st.session_state:
-        st.session_state.slice_idx = 0
-
-    nii_folder = "data/rCMB_DefiniteSubject"
-    excel_path = "rCMBInformationInfo.xlsx"
-
-    try:
-        df = pd.read_excel(excel_path)
-        nii_files = df.iloc[:, 0].tolist()
-        selected_file = st.selectbox("Select NIfTI file:", nii_files)
-
-        nii_path = os.path.join(nii_folder, selected_file)
-        img = nib.load(nii_path)
-        data = img.get_fdata()
-        row = df[df.iloc[:, 0] == selected_file].iloc[0].values[1:]
-
-        cmb_slices = set()
-        cmb_info = []
-        cmb_count = 0
-        for i in range(0, len(row), 3):
-            coords = row[i:i+3]
-            if pd.isna(coords).any() or any(str(x).strip() == '' for x in coords):
-                continue
-            try:
-                z = int(float(coords[2]))
-                cmb_count += 1
-                cmb_slices.add(z)
-                cmb_info.append((z, cmb_count))
-            except (ValueError, TypeError):
-                continue
-
-        if cmb_slices:
-            if 'prev_file' not in st.session_state or st.session_state.prev_file != selected_file:
-                st.session_state.slice_idx = sorted(cmb_slices)[0]
-                st.session_state.prev_file = selected_file
-        else:
-            st.session_state.slice_idx = data.shape[2] // 2
-
-        if cmb_slices:
-            st.write("**Quick navigation to microbleeds:**")
-            slices_sorted = sorted(cmb_slices)
-            cols_per_row = 4
-            for row_idx in range(0, len(slices_sorted), cols_per_row):
-                cols = st.columns(cols_per_row)
-                for col_idx, z in enumerate(slices_sorted[row_idx:row_idx+cols_per_row]):
-                    cmbs_on_slice = [c[1] for c in cmb_info if c[0] == z]
-                    label = f"Slice {z} ({len(cmbs_on_slice)} CMB)"
-                    with cols[col_idx]:
-                        if st.button(label, key=f"cmb_nav_{z}"):
-                            st.session_state.slice_idx = z
-                            st.rerun()
-
-        slice_idx = st.slider("Manual slice selection:", 0, data.shape[2] - 1, st.session_state.slice_idx, key="slice_slider")
-        if slice_idx != st.session_state.slice_idx:
-            st.session_state.slice_idx = slice_idx
-
-        fig, ax = plt.subplots(figsize=(10, 10))
-        ax.imshow(data[:, :, st.session_state.slice_idx].T, cmap="gray", origin="lower")
-
-        current_cmb_count = 0
-        for i in range(0, len(row), 3):
-            coords = row[i:i+3]
-            if pd.isna(coords).any() or any(str(x).strip() == '' for x in coords):
-                continue
-            try:
-                x, y, z = int(float(coords[0])), int(float(coords[1])), int(float(coords[2]))
-                if z == st.session_state.slice_idx:
-                    current_cmb_count += 1
-                    rect = patches.Rectangle((x - 2, y - 2), 4, 4, linewidth=2, edgecolor='lime', facecolor='none')
-                    ax.add_patch(rect)
-                    ax.text(x + 3, y - 3, f"CMB {current_cmb_count}", color='lime', fontsize=10, weight='bold')
-            except (ValueError, TypeError):
-                continue
-
-        st.pyplot(fig)
-
-        if cmb_slices:
-            st.success(f"**File summary:** {cmb_count} microbleeds across {len(cmb_slices)} slice(s)")
-            if st.session_state.slice_idx in cmb_slices:
-                cmbs_here = [c[1] for c in cmb_info if c[0] == st.session_state.slice_idx]
-                st.info(f"**Current slice {st.session_state.slice_idx}:** {len(cmbs_here)} microbleed(s) (CMB {', '.join(map(str, cmbs_here))})")
-            else:
-                st.warning("No microbleeds on current slice")
-        else:
-            st.warning("No microbleeds found in this file")
-
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+            st.markdown("**👨‍🏫 Prof. Dr. Tri Arief Sardjono, S.T., M.T.** \nDosen Pembimbing II")
 
 elif selected == "Get to Know Microbleeds":
     st.title("🧠 Get to Know Microbleeds")
@@ -374,28 +281,23 @@ elif selected == "Get to Know Microbleeds":
         """)
         st.video("https://www.youtube.com/watch?v=oSb_xKGhytY")
 
-
 elif selected == "Chatbot":
     st.title("🧠 Cerebral Microbleeds Expert Chatbot")
     
     # Custom CSS untuk tampilan lebih baik
     st.markdown("""
     <style>
-        /* Gaya untuk chat container */
         .stChatFloatingInputContainer {
             background-color: #f0f2f6;
         }
-        /* Warna teks input */
         .stTextInput input {
             color: #333333 !important;
         }
-        /* Gaya bubble chat */
         .stChatMessage {
             border-radius: 15px !important;
             padding: 12px !important;
             margin: 8px 0 !important;
         }
-        /* Gaya khusus untuk asisten */
         [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
             font-size: 16px;
         }
@@ -418,10 +320,8 @@ elif selected == "Chatbot":
 
     # Input pengguna
     if prompt := st.chat_input("Ask about cerebral microbleeds..."):
-        # Tambahkan ke history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
-        # Tampilkan pesan user
         with st.chat_message("user"):
             st.markdown(prompt)
         
@@ -431,14 +331,11 @@ elif selected == "Chatbot":
             full_response = ""
             
             try:
-                from openai import OpenAI
-                
                 client = OpenAI(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=st.secrets["OPENROUTER_API_KEY"],
                 )
 
-                # Format prompt untuk dokter spesialis
                 system_prompt = """Anda adalah Dr. Neuro, ahli neurologi dan radiologi dengan spesialisasi cerebral microbleeds yang bisa menjawab dengan bahasa apa saja. 
                 Berikan jawaban yang:
                 - Singkat dan langsung (maksimal 3 paragraf)
@@ -455,10 +352,9 @@ elif selected == "Chatbot":
                     model="deepseek/deepseek-r1-distill-llama-70b:free",
                     messages=messages,
                     temperature=0.7,
-                    stream=True  # Untuk efek streaming
+                    stream=True
                 )
                 
-                # Tampilkan respons secara bertahap
                 for chunk in response:
                     if chunk.choices[0].delta.content:
                         full_response += chunk.choices[0].delta.content
@@ -471,7 +367,6 @@ elif selected == "Chatbot":
                 full_response = "Maaf, saya sedang tidak bisa menjawab. Silakan coba lagi nanti."
                 message_placeholder.markdown(full_response)
         
-        # Tambahkan ke history
         st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 elif selected == "Project FAQ":
