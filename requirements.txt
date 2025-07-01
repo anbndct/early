@@ -4,3 +4,5 @@ nibabel
 numpy
 pandas
 matplotlib
+requests
+openpyxl
