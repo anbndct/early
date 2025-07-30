@@ -160,7 +160,7 @@ elif selected == "CMB detection":
         unsafe_allow_html=True
     )
     st.markdown(
-        '<div style="text-align: center; margin-top: 2rem;"><a href="https://huggingface.co/spaces/anbndct/microbleedsTA" target="_blank" class="link-button">Buka Aplikasi Deteksi CMB</a></div>',
+        '<div style="text-align: center; margin-top: 2rem;"><a href="https://streamicro.streamlit.app/" target="_blank" class="link-button">Buka Aplikasi Deteksi CMB</a></div>',
         unsafe_allow_html=True
     )
     st.info("Catatan: Aplikasi akan terbuka di tab browser baru untuk pengalaman terbaik.", icon="ℹ️")
