@@ -156,7 +156,7 @@ elif selected == "CMB detection":
         unsafe_allow_html=True
     )
     st.markdown(
-        '<p style="font-size: 18px; margin-top: 1rem;">Klik tombol di bawah ini untuk membuka aplikasi deteksi CMB. Anda akan diarahkan ke aplikasi eksternal yang di-hosting di Hugging Face Spaces.</p>',
+        '<p style="font-size: 18px; margin-top: 1rem;">Klik tombol di bawah ini untuk membuka aplikasi deteksi CMB. Anda akan diarahkan ke aplikasi eksternal.</p>',
         unsafe_allow_html=True
     )
     st.markdown(
