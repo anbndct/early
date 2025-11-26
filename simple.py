@@ -191,7 +191,7 @@ elif selected == "Chatbot":
             message_placeholder = st.empty()
             full_response = ""
             try:
-                client = OpenAI(base_url="https://api.deepseek.com/v1", api_key=st.secrets["DEEPSEEK_API_KEY"])
+                client = OpenAI("base_url=https://openrouter.ai/api/v1", api_key=st.secrets["OPENAI_API_KEY"])
                 system_prompt = "Anda adalah Dr. Neuro, ahli neurologi dan radiologi dengan spesialisasi cerebral microbleeds. Jawablah dengan singkat, jelas (maksimal 3 paragraf), dan dalam bahasa natural seolah sedang berkonsultasi. Fokus pada pertanyaan spesifik pengguna."
                 messages = [{"role": "system", "content": system_prompt}] + st.session_state.messages
                 response = client.chat.completions.create(
@@ -224,4 +224,5 @@ elif selected == "Project FAQ":
     for question, answer in faqs.items():
         with st.expander(f"**{question}**"):
             st.write(answer)
+
 
